@@ -16,3 +16,18 @@ Goals:
 
 -- Inspection shows there are 9 columns and all of them are of variable type: text except 'total_laid_off' which is a double
 -- 9 Columns: company, location, industry, total_laid_off, percentage_laid_off, date, stage, country, funds_raised
+
+-- 1 Understand Dataset: the Columns, Rows and setup.
+-- 1.1 Preview the Dataset and view Columns and Rows to have a sense of the Dataset.
+
+SELECT *
+FROM tech_layoffs;
+
+-- Example Row Returned 'Brightcove', '[\'Boston\']', 'Marketing', '198', '0.33', '2025-03-19T00:00:00.000Z', 'Acquired', 'United States', '145.0'
+
+-- 1.2 Understand the Total number of Rows in the Dataset
+
+SELECT COUNT(*) AS Total_Rows
+FROM tech_layoffs;
+
+-- Answer: 1288 Rows
