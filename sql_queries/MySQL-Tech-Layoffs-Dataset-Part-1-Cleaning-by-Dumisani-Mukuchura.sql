@@ -104,4 +104,157 @@ WHERE row_num > 1;
 
 */
 
+-- 3. Standardize the Data considering understanding from Step 1.
 
+-- Check issues with Standard 
+
+SELECT *
+FROM tech_layoffs_dup;
+
+-- check for inconsistencies across all the columns  
+SELECT DISTINCT company
+FROM tech_layoffs_dup
+ORDER BY 1;
+
+SELECT DISTINCT location
+FROM tech_layoffs_dup
+ORDER BY 1;
+
+SELECT DISTINCT industry
+FROM tech_layoffs_dup
+ORDER BY 1;
+
+SELECT DISTINCT stage
+FROM tech_layoffs_dup
+ORDER BY 1;
+
+SELECT DISTINCT country
+FROM tech_layoffs_dup
+ORDER BY 1;
+
+/*
+1. company there are some with whitespaces e.g F-Secure
+2. location has encasulation of sort with [''] that will need to be removed and add new column 'us status' when location when outside US it has a Non-U.S. component
+3. date has a text data type but need to have it as datetime
+*/
+
+-- 3.1 Deal with Whitespaces in company 
+
+SELECT company, TRIM(company)
+FROM tech_layoffs_dup
+ORDER BY 1;
+
+-- Remove Whitespaces
+UPDATE tech_layoffs_dup
+SET company = TRIM(company);
+
+-- Confirm Removal of Whitespaces
+SELECT DISTINCT company
+FROM tech_layoffs_dup
+ORDER BY 1;
+
+-- 3.2. location has encasulation of sort with [','] that will need to be removed
+
+-- 3.2.1 Remove [','] Test
+SELECT location,
+		REPLACE(
+			REPLACE(
+				REPLACE
+					(REPLACE(location, 
+						'[', ''),  -- Remove [
+							']', '' ), -- Remove ]
+								'''', ''), -- Remove Single Quotes
+									',', '') AS clean_location -- Remove the ,
+FROM tech_layoffs_dup;
+
+-- 3.2.2 Test the Split to Add U.S. Status
+
+WITH Test_Split_US_Status_CTE AS
+(
+SELECT location,
+		REPLACE(
+			REPLACE(
+				REPLACE
+					(REPLACE(location, 
+						'[', ''),  -- Remove [
+							']', '' ), -- Remove ]
+								'''', ''), -- Remove Single Quotes
+									',', '') AS clean_location -- Remove the ,
+FROM tech_layoffs_dup
+)
+SELECT *,
+	CASE
+		WHEN clean_location LIKE "%Non-U.S.%" THEN "Non-U.S."
+        ELSE "U.S." 
+END AS us_status
+FROM Test_Split_US_Status_CTE;
+
+-- Now Update the Table with addition of New US State Column and then updating the location column with new clean column 
+
+ALTER TABLE tech_layoffs_dup ADD COLUMN us_status VARCHAR(15);
+
+UPDATE tech_layoffs_dup
+SET 
+	location = REPLACE(
+				 REPLACE(
+					REPLACE
+						(REPLACE(location, 
+							'[', ''),  -- Remove [
+								']', '' ), -- Remove ]
+									'''', ''), -- Remove Single Quotes
+										',', ''), -- Remove the ,
+	us_status = CASE
+					WHEN location LIKE "%Non-U.S.%" THEN "Non-U.S."
+					ELSE "U.S."
+				END;
+
+-- Check the New Table
+SELECT *
+FROM tech_layoffs_dup;
+                
+UPDATE tech_layoffs_dup
+SET location = TRIM(REPLACE(location, "Non-U.S.", "")) -- Remove the Non-U.S. part from the location and the White Space
+WHERE location LIKE "%Non-U.S.%";
+
+-- Check the New Table 
+SELECT *
+FROM tech_layoffs_dup;
+
+-- 3.3. date has a text data type but need to have it as datetime
+
+SELECT `date`,
+		STR_TO_DATE(`date`, "%Y-%m-%dT%T.%fZ") AS new_date
+FROM tech_layoffs_dup;
+
+-- But there is no information beyond the date, the Time component does not change thus we can drop it 
+
+/* NOTES
+Specifier - Meaning            -           Example
+%Y	        4-digit year	               2025
+%y	        2-digit year	               25
+%m	        Month (01-12)	               03
+%c	        Month (1-12)	               3
+%d	        Day of month (01-31)           19
+%H	        Hour (00-23)	               15
+%i	        Minutes (00-59)	               30
+%s	        Seconds (00-59)	               45
+%f	        Microseconds (000000-999999)   000
+%T	        Shortcut for %H:%i:%s	       15:30:45
+*/
+
+SELECT `date`,
+		STR_TO_DATE(`date`, "%Y-%m-%d") AS new_date
+FROM tech_layoffs_dup;
+
+-- UPDATE the `date` column with the formatted date, but not you can not truncate or trim as it expects same length of `date` 
+
+UPDATE tech_layoffs_dup
+SET `date` = STR_TO_DATE(`date`, "%Y-%m-%dT%T.%fZ");
+
+-- But the `date` column is still text so do a DATETIME modification
+
+ALTER TABLE tech_layoffs_dup
+MODIFY COLUMN `date` DATETIME;
+
+
+    
