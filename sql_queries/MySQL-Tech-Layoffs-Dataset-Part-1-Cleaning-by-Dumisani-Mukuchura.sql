@@ -136,6 +136,7 @@ ORDER BY 1;
 1. company there are some with whitespaces e.g F-Secure
 2. location has encasulation of sort with [''] that will need to be removed and add new column 'us status' when location when outside US it has a Non-U.S. component
 3. date has a text data type but need to have it as datetime
+4. correct data types: percentage_laid_off, funds_raised from text
 */
 
 -- 3.1 Deal with Whitespaces in company 
@@ -255,6 +256,115 @@ SET `date` = STR_TO_DATE(`date`, "%Y-%m-%dT%T.%fZ");
 
 ALTER TABLE tech_layoffs_dup
 MODIFY COLUMN `date` DATETIME;
+
+SELECT *
+FROM tech_layoffs_dup;
+
+-- 3.4. correct data types: percentage_laid_off, funds_raised from text 
+
+ALTER TABLE tech_layoffs_dup
+MODIFY COLUMN percentage_laid_off DOUBLE NULL,    -- decimal(5,2) - means from -999.99 to 999.99
+MODIFY COLUMN funds_raised DOUBLE NULL;
+
+-- HAVE TO HOLD OFF UNTIL I DEAL WITH Blanks
+
+-- 4. Check for NULL/Blank values and decide how to deal with them.
+
+-- Check for NULLs/Blanks: 
+-- They appear on "percentage_laid_off" and we also note instances that have High Decimal Places we will need to deal with 
+
+-- Check Blanks/NULLs in percentage_laid_off
+SELECT DISTINCT percentage_laid_off
+FROM tech_layoffs_dup;
+
+SELECT *
+FROM tech_layoffs_dup
+WHERE percentage_laid_off = "" OR percentage_laid_off IS NULL;
+
+SELECT COUNT(*) AS percentage_laid_off_missing
+FROM tech_layoffs_dup
+WHERE percentage_laid_off = "" OR percentage_laid_off IS NULL;
+
+-- 457 rows with missing percentage_laid_off
+
+-- Check Blanks/NULLs in funds_raised
+SELECT DISTINCT funds_raised
+FROM tech_layoffs_dup;
+
+SELECT *
+FROM tech_layoffs_dup
+WHERE funds_raised = "" OR funds_raised IS NULL;
+
+SELECT COUNT(*) AS funds_raised_missing
+FROM tech_layoffs_dup
+WHERE funds_raised = "" OR funds_raised IS NULL;
+
+-- 165 rows with Missing funds_raised
+
+-- Check how many Rows have both percentage_laid_off and funds_raised as Blanks/NULLs
+SELECT *
+FROM tech_layoffs_dup
+WHERE (funds_raised = "" OR funds_raised IS NULL)
+AND (percentage_laid_off = "" OR percentage_laid_off IS NULL);
+
+SELECT COUNT(*) AS missing_percentage_laid_off_and_funds_raised
+FROM tech_layoffs_dup
+WHERE (funds_raised = "" OR funds_raised IS NULL)
+AND (percentage_laid_off = "" OR percentage_laid_off IS NULL);
+
+-- 66 rows with both missing. 
+
+/*
+Suppose when there was a missing industry we would do a SELF JOIN and when Company and Location are the same we would then check if there is an instance where one record has Industry and another does not have Industry
+
+-----------
+SELECT t1.industry, t2.industry
+FROM tech_layoffs_dup t1
+JOIN tech_layoffs_dup t2 
+	ON t1.company = t2.company AND  t1.location = t2.location
+WHERE (t1.industry IS NULL OR t1.industry = '') AND t2.industry IS NOT NULL;
+-----------
+
+CONVERT all Blanks to NULLs 
+DELETE rows where percentage_laid_off and funds_raised are Blank/NULL
+*/
+
+-- Set ALL Blanks to NULLs
+UPDATE tech_layoffs_dup
+SET percentage_laid_off = NULL
+WHERE percentage_laid_off = "";
+
+UPDATE tech_layoffs_dup
+SET funds_raised = NULL
+WHERE funds_raised = "";
+
+-- Confirm how many rows have both percentage_laid_off and funds_raised IS NULL
+SELECT COUNT(*)
+FROM tech_layoffs_dup
+WHERE percentage_laid_off IS NULL
+AND funds_raised IS NULL;
+
+-- Delete those Rows
+DELETE
+FROM tech_layoffs_dup
+WHERE percentage_laid_off IS NULL
+AND funds_raised IS NULL;
+
+-- Confirm Deletion
+SELECT 
+    SUM(CASE 
+			WHEN percentage_laid_off IS NULL THEN 1 
+            ELSE 0 END) AS remaining_null_percentages,
+    SUM(CASE 
+			WHEN funds_raised IS NULL THEN 1 
+            ELSE 0 END) AS remaining_null_funds
+FROM tech_layoffs_dup;
+
+-- Expecting 457 - 66 for Remaining NULL percentage_laid_off and 165 - 66 for Remaining NULL funds_raised
+
+ 
+
+
 
 
     
