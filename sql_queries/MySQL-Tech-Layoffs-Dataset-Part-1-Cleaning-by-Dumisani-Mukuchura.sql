@@ -137,6 +137,7 @@ ORDER BY 1;
 2. location has encasulation of sort with [''] that will need to be removed and add new column 'us status' when location when outside US it has a Non-U.S. component
 3. date has a text data type but need to have it as datetime
 4. correct data types: percentage_laid_off, funds_raised from text
+5. remove redundant columns
 */
 
 -- 3.1 Deal with Whitespaces in company 
@@ -361,6 +362,15 @@ SELECT
 FROM tech_layoffs_dup;
 
 -- Expecting 457 - 66 for Remaining NULL percentage_laid_off and 165 - 66 for Remaining NULL funds_raised
+
+-- 5: Remove redundant Columns
+
+SELECT *
+FROM tech_layoffs_dup;
+
+-- There are no columns to be removed as all we ci=urrently have valuable information that can be valuable.
+
+
 
  
 
